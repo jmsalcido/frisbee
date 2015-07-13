@@ -41,6 +41,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import org.gdg.frisbee.android.BuildConfig;
 import org.gdg.frisbee.android.R;
@@ -57,6 +58,7 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 import io.doorbell.android.DoorbellApi;
 import io.doorbell.android.manavo.rest.RestCallback;
+import io.doorbell.android.manavo.rest.RestErrorCallback;
 import timber.log.Timber;
 
 public class FeedbackFragment extends DialogFragment {
@@ -69,10 +71,11 @@ public class FeedbackFragment extends DialogFragment {
     private static final String PROPERTY_ACTIVITY = "Activity";
     private static final String PROPERTY_APP_VERSION_NAME = "App Version Name";
     private static final String PROPERTY_APP_VERSION_CODE = "App Version Code";
-//    private static final String POWERED_BY_DOORBELL_TEXT = "Powered by <a href=\"https://doorbell.io\">Doorbell.io</a>";
 
-    @InjectView(R.id.feedback_message_text) EditText mMessageField;
-    @InjectView(R.id.feedback_email_text) AutoCompleteTextView mEmailField;
+    @InjectView(R.id.feedback_message_text)
+    EditText mMessageField;
+    @InjectView(R.id.feedback_email_text)
+    AutoCompleteTextView mEmailField;
 
     private JSONObject mProperties;
     private DoorbellApi mApi;
@@ -108,17 +111,25 @@ public class FeedbackFragment extends DialogFragment {
                 .setPositiveButton(R.string.feedback_send, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        mApi.setLoadingMessage(getActivity().getString(R.string.feedback_sending));
-                        mApi.setCallback(new RestCallback() {
-                            public void success(Object obj) {
-                                //TODO add feedback
-//                                Toast.makeText(getActivity(), obj.toString(), Toast.LENGTH_SHORT).show();
-                                mMessageField.setText("");
-                                mProperties = new JSONObject();
-                            }
-                        });
-                        mApi.sendFeedback(mMessageField.getText().toString(),
-                                mEmailField.getText().toString(), mProperties, "");
+                        if (mMessageField.getText().toString().length() != 0) {
+                            mApi.setLoadingMessage(getActivity().getString(R.string.feedback_sending));
+                            mApi.setCallback(new RestCallback() {
+                                public void success(Object obj) {
+                                    mMessageField.setText("");
+                                    mProperties = new JSONObject();
+                                }
+                            });
+                            mApi.setErrorCallback(new RestErrorCallback() {
+                                @Override
+                                public void error(String s) {
+                                    Toast.makeText(getActivity(), s, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            mApi.sendFeedback(mMessageField.getText().toString(),
+                                    mEmailField.getText().toString(), mProperties, "");
+                        } else {
+                            Toast.makeText(getActivity(), "Feedback should not be empty", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
 
